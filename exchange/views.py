@@ -1,4 +1,5 @@
 from datetime import timedelta
+import ipaddress
 from django.conf import settings
 from django.db import transaction
 from django.db.models import Count
@@ -20,9 +21,15 @@ class ObservationListCreate(generics.ListCreateAPIView):
     throttle_scope="read"
     def get_queryset(self):
         qs=Observation.objects.select_related("organization").filter(active=True,expires_at__gt=timezone.now()).order_by("-last_seen_at")
-        for param,field in [("ip","ip_address"),("reason","reason"),("organization","organization__slug")]:
-            value=self.request.query_params.get(param)
-            if value: qs=qs.filter(**{field:value})
+        ip=self.request.query_params.get("ip")
+        if ip:
+            try: ip=str(ipaddress.ip_address(ip))
+            except ValueError: return qs.none()
+            qs=qs.filter(ip_address=ip)
+        reason=self.request.query_params.get("reason")
+        organization=self.request.query_params.get("organization")
+        if reason: qs=qs.filter(reason=reason)
+        if organization: qs=qs.filter(organization__slug=organization)
         return qs
     def create(self,request,*args,**kwargs):
         self.throttle_scope="write"
@@ -37,7 +44,7 @@ class SyncView(APIView):
         s=SyncSerializer(data=request.data); s.is_valid(raise_exception=True)
         org=request.user.organization; now=timezone.now(); items=s.validated_data["observations"]
         ips={str(x["ip_address"]) for x in items}
-        deactivated=Observation.objects.filter(organization=org,active=True).exclude(ip_address__in=ips).update(active=False)
+        deactivated=Observation.objects.filter(organization=org,active=True).exclude(ip_address__in=ips).update(active=False,updated_at=now)
         for item in items:
             d=dict(item); d.setdefault("first_seen_at",now); d.setdefault("last_seen_at",now); d.setdefault("expires_at",now+timedelta(days=settings.DEFAULT_OBSERVATION_TTL_DAYS)); d["active"]=True
             Observation.objects.update_or_create(organization=org,ip_address=item["ip_address"],defaults=d)
@@ -46,6 +53,8 @@ class SyncView(APIView):
 class IpDetail(APIView):
     throttle_scope="read"
     def get(self,request,ip):
+        try: ip=str(ipaddress.ip_address(ip))
+        except ValueError: return Response({"detail":"Invalid IP address."},status=400)
         qs=Observation.objects.select_related("organization").filter(ip_address=ip,active=True,expires_at__gt=timezone.now()).order_by("-last_seen_at")
         return Response({"ip_address":ip,"active_reporters":qs.values("organization_id").distinct().count(),"reasons":list(qs.values("reason").annotate(count=Count("id")).order_by("-count")),"observations":ObservationSerializer(qs,many=True).data})
 
@@ -55,5 +64,6 @@ class ChangeFeed(APIView):
         raw=request.query_params.get("since")
         since=parse_datetime(raw) if raw else None
         if not since: return Response({"detail":"since is required as ISO 8601."},status=400)
-        qs=Observation.objects.select_related("organization").filter(updated_at__gt=since).order_by("updated_at")[:5000]
+        if timezone.is_naive(since): return Response({"detail":"since must include a timezone."},status=400)
+        qs=Observation.objects.select_related("organization").filter(updated_at__gt=since).order_by("updated_at","id")[:5000]
         return Response({"since":raw,"generated_at":timezone.now(),"changes":ObservationSerializer(qs,many=True).data})
