@@ -1,9 +1,13 @@
 services:
   - type: web
     name: blocklist
-    runtime: docker
-    healthCheckPath: /health/
+    runtime: python
+    plan: free
+    region: oregon
+    buildCommand: pip install -r requirements.txt && python manage.py collectstatic --noinput
     preDeployCommand: python manage.py migrate
+    startCommand: gunicorn blocklist.wsgi:application --bind 0.0.0.0:$PORT --workers 2 --threads 4 --timeout 30
+    healthCheckPath: /health/
     envVars:
       - key: DATABASE_URL
         fromDatabase:
@@ -11,11 +15,16 @@ services:
           property: connectionString
       - key: SECRET_KEY
         generateValue: true
-      - key: ALLOWED_HOSTS
-        value: blocklist.onrender.com
       - key: DEBUG
         value: "0"
+      - key: ALLOWED_HOSTS
+        fromService:
+          type: web
+          name: blocklist
+          property: host
+
 databases:
   - name: blocklist-db
-    databaseName: blocklist
-    user: blocklist
+    plan: free
+    region: oregon
+    postgresMajorVersion: 18
