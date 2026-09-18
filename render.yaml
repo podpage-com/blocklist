@@ -3,9 +3,9 @@ projects:
     environments:
       - name: Production
         services:
-          - blocklist
+          - name: blocklist
         databases:
-          - blocklist-db
+          - name: blocklist-db
 
 services:
   - type: web
