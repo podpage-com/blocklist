@@ -1,17 +1,19 @@
 name: test
-on:
-  push:
-  pull_request:
+on: [push, pull_request]
+permissions:
+  contents: read
 jobs:
   test:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
-        with:
-          python-version: "3.13"
+        with: {python-version: "3.13"}
       - run: pip install -r requirements.txt
+      - run: pip install bandit pip-audit
+      - run: python manage.py check --deploy
+        env: {SECRET_KEY: "ci-ci-ci-ci-ci-ci-ci-ci-ci-ci-ci-ci-ci-ci-ci-ci-ci", DATABASE_URL: "sqlite:///db.sqlite3", DEBUG: "0", ALLOWED_HOSTS: "localhost"}
       - run: python manage.py test
-        env:
-          SECRET_KEY: ci
-          DATABASE_URL: sqlite:///db.sqlite3
+        env: {SECRET_KEY: ci, DATABASE_URL: "sqlite:///db.sqlite3", DEBUG: "1"}
+      - run: bandit -q -r blocklist exchange
+      - run: pip-audit

@@ -3,6 +3,7 @@ services:
     name: blocklist
     runtime: docker
     healthCheckPath: /health/
+    preDeployCommand: python manage.py migrate
     envVars:
       - key: DATABASE_URL
         fromDatabase:
@@ -12,6 +13,8 @@ services:
         generateValue: true
       - key: ALLOWED_HOSTS
         value: blocklist.onrender.com
+      - key: DEBUG
+        value: "0"
 databases:
   - name: blocklist-db
     databaseName: blocklist
