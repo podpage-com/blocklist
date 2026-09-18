@@ -2,7 +2,7 @@ from rest_framework.authentication import BaseAuthentication
 from rest_framework.exceptions import AuthenticationFailed
 from .models import ApiKey
 class Principal:
-    def __init__(self,organization): self.organization=organization
+    def __init__(self,organization): self.organization=organization; self.pk=organization.pk
     @property
     def is_authenticated(self): return True
 class ApiKeyAuthentication(BaseAuthentication):
