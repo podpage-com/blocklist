@@ -21,10 +21,7 @@ projects:
               - key: DEBUG
                 value: "0"
               - key: ALLOWED_HOSTS
-                fromService:
-                  type: web
-                  name: blocklist
-                  property: host
+                value: ".onrender.com"
         databases:
           - name: blocklist-db
             plan: free
