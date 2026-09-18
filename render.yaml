@@ -1,3 +1,12 @@
+projects:
+  - name: Blocklist
+    environments:
+      - name: Production
+        services:
+          - blocklist
+        databases:
+          - blocklist-db
+
 services:
   - type: web
     name: blocklist
