@@ -1,0 +1,12 @@
+<!doctype html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Blocklist — shared abuse intelligence</title><style>body{font:16px/1.55 ui-monospace,SFMono-Regular,Menlo,monospace;max-width:900px;margin:60px auto;padding:0 24px;color:#18181b}h1{font-size:34px}h2{margin-top:44px;border-top:1px solid #ddd;padding-top:24px}code,pre{background:#f4f4f5}code{padding:2px 5px}pre{padding:18px;overflow:auto;border-radius:6px}.muted{color:#666}a{color:#18181b}table{border-collapse:collapse;width:100%}td,th{text-align:left;border-bottom:1px solid #ddd;padding:9px 4px}</style></head><body><h1>Blocklist</h1><p>Shared infrastructure for exchanging IP abuse observations between independent organizations.</p><p class="muted">Blocklist distributes information. It does not make blocking decisions or manage participant infrastructure.</p><h2>Integration</h2><p>Every organization receives an API key. Send it as <code>Authorization: Api-Key YOUR_KEY</code>.</p><h3>Report an observation</h3><pre>POST /api/v1/observations/
+{
+  "ip_address": "203.0.113.42",
+  "reason": "signup_abuse",
+  "last_seen_at": "2026-09-18T05:00:00Z"
+}</pre><h3>Synchronize your complete current list</h3><pre>PUT /api/v1/observations/sync/
+{
+  "observations": [
+    {"ip_address":"203.0.113.42","reason":"spam"},
+    {"ip_address":"198.51.100.7","reason":"scraping"}
+  ]
+}</pre><p>The sync endpoint is authoritative: observations previously published by your organization but absent from the request become inactive.</p><h2>Read API</h2><table><tr><th>Endpoint</th><th>Purpose</th></tr><tr><td>GET /api/v1/observations/</td><td>Current active observations</td></tr><tr><td>GET /api/v1/ips/&lt;ip&gt;/</td><td>Reports and reasons for one IP</td></tr><tr><td>GET /api/v1/changes/?since=...</td><td>Incremental changes</td></tr><tr><td>GET /health/</td><td>Service health</td></tr></table><p>Observation queries support <code>?ip=</code>, <code>?reason=</code>, and <code>?organization=</code>.</p><h2>Consumer policy</h2><p>A participant may block every reported address, require reports from multiple organizations, use observations only as a risk signal, maintain local allowlists, or ignore categories it does not care about. That policy belongs to the participant.</p><h2>Source</h2><p>Blocklist is open source. Review or contribute at <a href="https://github.com/podpage-com/blocklist">github.com/podpage-com/blocklist</a>.</p></body></html>
