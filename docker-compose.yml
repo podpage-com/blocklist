@@ -1,0 +1,20 @@
+services:
+  db:
+    image: postgres:17
+    environment:
+      POSTGRES_DB: blocklist
+      POSTGRES_USER: blocklist
+      POSTGRES_PASSWORD: blocklist
+    volumes: [postgres_data:/var/lib/postgresql/data]
+  web:
+    build: .
+    ports: ["8000:8000"]
+    environment:
+      DEBUG: "1"
+      SECRET_KEY: development
+      DATABASE_URL: postgres://blocklist:blocklist@db:5432/blocklist
+      ALLOWED_HOSTS: localhost,127.0.0.1
+    depends_on: [db]
+    command: sh -c "python manage.py migrate && gunicorn blocklist.wsgi:application --bind 0.0.0.0:8000 --reload"
+volumes:
+  postgres_data:
